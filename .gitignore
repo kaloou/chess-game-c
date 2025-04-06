@@ -1,0 +1,20 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# compilation files
+*.o
+obj/
+chess
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Save files
+*~
+*.bak
