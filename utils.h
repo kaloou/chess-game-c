@@ -2,7 +2,9 @@
 #define UTILS_H
 
 #include <stdbool.h>
+#include <SDL2/SDL.h>
+#include "game_graphics.h"
 
-bool is_legal_position(int row, int col);
+void cleanup(SDL_Window *window, SDL_Renderer *renderer, ChessPieces pieces);
 
 #endif 

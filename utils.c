@@ -1,7 +1,17 @@
 #include "utils.h"
-#include "board.h"
+#include "game_graphics.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
-bool is_legal_position(int row, int col)
+void cleanup(SDL_Window *window, SDL_Renderer *renderer, ChessPieces pieces)
 {
-    return (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE);
+    for (int i = 1; i < 13; i++) {
+        if (pieces.textures[i] != NULL)
+            SDL_DestroyTexture(pieces.textures[i]);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    IMG_Quit();
+    SDL_Quit();
 } 

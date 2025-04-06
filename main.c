@@ -1,8 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdbool.h>
-#include "board.h"
-#include "graphics.h"
+#include "game_graphics.h"
 #include "game_logic.h"
 #include "utils.h"
 
