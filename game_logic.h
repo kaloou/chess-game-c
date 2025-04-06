@@ -25,11 +25,10 @@
 extern bool turn;
 extern int board[BOARD_SIZE][BOARD_SIZE];
 
-void click(int row, int col, SDL_Renderer *renderer, ChessPieces pieces);
+
 int get_moves(int row, int col, int **tab_moves);
 bool is_legal_move(int row, int col);
 void switch_turn(bool *turn);
-void game_loop(SDL_Renderer *renderer, ChessPieces pieces);
 void initialize_board(void);
 bool is_empty(int row, int col);
 bool has_enemy_piece(int row, int col, bool is_white);
