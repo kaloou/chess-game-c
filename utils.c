@@ -34,22 +34,31 @@ void game_loop(SDL_Renderer *renderer, ChessPieces pieces)
 void click(int row, int col, SDL_Renderer *renderer, ChessPieces pieces)
 {   
     if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
-        int **possible_moves = malloc(27 * sizeof(int *));
-        for (int i = 0; i < 27; i++) {
-            possible_moves[i] = malloc(2 * sizeof(int));
+        // Check turn
+        bool piece_color = get_color(row, col);
+        if (piece_color != turn)
+            return;
+
+        Move *possible_moves = malloc(27 * sizeof(Move));
+        if (possible_moves == NULL) {
+            fprintf(stderr, "Erreur d'allocation mémoire\n");
+            return;
         }
 
-        int size = get_moves(row, col, possible_moves);
-
+        int size = get_moves(row, col, &possible_moves);
+        
+        /* Debug: print moves
+        printf("Mouvements possibles pour la pièce à (%d,%d):\n", row, col);
+        for (int i = 0; i < size; i++) {
+            printf("  Move %d: (%d,%d) type=%d\n", i, possible_moves[i].row, possible_moves[i].col, possible_moves[i].type);
+        }
+        */
         draw_background(renderer);
         draw_board(renderer);
         draw_pieces(renderer, pieces);
         show_moves(renderer, possible_moves, size);
         SDL_RenderPresent(renderer);
 
-        for (int i = 0; i < 27; i++) {
-            free(possible_moves[i]);
-        }
         free(possible_moves);
     }
 }
@@ -66,3 +75,8 @@ void cleanup(SDL_Window *window, SDL_Renderer *renderer, ChessPieces pieces)
     IMG_Quit();
     SDL_Quit();
 } 
+
+void switch_turn(void)
+{
+    turn = (turn == WHITE) ? BLACK : WHITE;
+}

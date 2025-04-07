@@ -131,30 +131,49 @@ void draw_pieces(SDL_Renderer *renderer, ChessPieces pieces)
     }
 }
 
-void show_moves(SDL_Renderer *renderer, int **tab_moves, int size)
+void show_moves(SDL_Renderer *renderer, Move *moves, int size)
 {
     SDL_Rect rect;
     rect.w = SQUARE_SIZE;
     rect.h = SQUARE_SIZE;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 128, 128, 128, 180);
 
     for (int i = 0; i < size; i++) {
-        int row = tab_moves[i][0];
-        int col = tab_moves[i][1];
+        int row = moves[i].row;
+        int col = moves[i].col;
 
         rect.x = BOARD_X + col * SQUARE_SIZE;
         rect.y = BOARD_Y + row * SQUARE_SIZE;
 
         int centerX = rect.x + SQUARE_SIZE / 2;
         int centerY = rect.y + SQUARE_SIZE / 2;
-        int radius = SQUARE_SIZE / 4;
+        int radius = SQUARE_SIZE / 3;
 
-        for (int dy = -radius; dy <= radius; dy++) {
-            for (int dx = -radius; dx <= radius; dx++) {
-                if (dx*dx + dy*dy <= radius*radius) {
-                    SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+        if (moves[i].type == MOVE_NORMAL)
+        {
+            SDL_SetRenderDrawColor(renderer, 128, 128, 128, 100);
+            for (int dy = -radius/2; dy <= radius/2; dy++) {
+                for (int dx = -radius/2; dx <= radius/2; dx++) {
+                    if (dx*dx + dy*dy <= (radius/2)*(radius/2)) {
+                        SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+                    }
+                }
+            }
+        }
+        else // attack
+        {
+            SDL_SetRenderDrawColor(renderer, 128, 128, 128, 120);
+            int outerRadius = SQUARE_SIZE / 2 ;
+            int innerRadius = outerRadius - 8;
+            
+            for (int dy = -outerRadius; dy <= outerRadius; dy++) {
+                for (int dx = -outerRadius; dx <= outerRadius; dx++) {
+                    int distSquared = dx*dx + dy*dy;
+                    if (distSquared <= outerRadius*outerRadius && 
+                        distSquared >= innerRadius*innerRadius) {
+                        SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+                    }
                 }
             }
         }

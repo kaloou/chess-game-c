@@ -9,5 +9,6 @@
 void game_loop(SDL_Renderer *renderer, ChessPieces pieces);
 void click(int row, int col, SDL_Renderer *renderer, ChessPieces pieces);
 void cleanup(SDL_Window *window, SDL_Renderer *renderer, ChessPieces pieces);
+void switch_turn(void);
 
 #endif 

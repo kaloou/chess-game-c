@@ -2,36 +2,17 @@
 #define GAME_LOGIC_H
 
 #include <stdbool.h>
-#include "game_graphics.h"
-
-#define BOARD_SIZE 8
-#define EMPTY 0
-#define W_PAWN 1
-#define W_KNIGHT 2
-#define W_BISHOP 3
-#define W_ROOK 4
-#define W_QUEEN 5
-#define W_KING 6
-#define B_PAWN 7
-#define B_KNIGHT 8
-#define B_BISHOP 9
-#define B_ROOK 10
-#define B_QUEEN 11
-#define B_KING 12
-
-#define WHITE true
-#define BLACK false
+#include "defines.h"
 
 extern bool turn;
 extern int board[BOARD_SIZE][BOARD_SIZE];
 
-
-int get_moves(int row, int col, int **tab_moves);
+int get_moves(int row, int col, Move **moves);
 bool is_legal_move(int row, int col);
-void switch_turn(bool *turn);
 void initialize_board(void);
 bool is_empty(int row, int col);
-bool has_enemy_piece(int row, int col, bool is_white);
-bool is_legal_position(int row, int col);
+bool is_enemy_piece(int row, int col);
+bool get_color(int row, int col);
+bool is_on_board(int row, int col);
 
 #endif 

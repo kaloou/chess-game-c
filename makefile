@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
-LDFLAGS = -lSDL2 -lSDL2_image
+LDFLAGS = -L/opt/homebrew/lib -L/usr/local/lib -lSDL2 -lSDL2_image
+INCLUDES = -I/opt/homebrew/include -I/usr/local/include
 
 # Dossiers
 SRC_DIR = .
@@ -25,7 +26,7 @@ $(TARGET): $(OBJS)
 
 # Compilation des fichiers sources
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) -I$(INC_DIR) -c $< -o $@
 
 # Nettoyage
 clean:
