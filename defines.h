@@ -23,11 +23,12 @@
 // Move Types
 #define MOVE_NORMAL 0
 #define MOVE_ATTACK 1
+#define MOVE_ILLEGAL 2
 
 // Window and Board
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 800
-#define SQUARE_SIZE 85
+#define SQUARE_SIZE 100
 #define BOARD_X 0
 #define BOARD_Y 0
 

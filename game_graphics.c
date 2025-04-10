@@ -161,7 +161,7 @@ void show_moves(SDL_Renderer *renderer, Move *moves, int size)
                 }
             }
         }
-        else // attack
+        else if (moves[i].type == MOVE_ATTACK)
         {
             SDL_SetRenderDrawColor(renderer, 128, 128, 128, 120);
             int outerRadius = SQUARE_SIZE / 2 ;
@@ -177,6 +177,8 @@ void show_moves(SDL_Renderer *renderer, Move *moves, int size)
                 }
             }
         }
+        else;
+
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
