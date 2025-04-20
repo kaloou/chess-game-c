@@ -4,6 +4,131 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
+// Variables globales pour gérer l'état du jeu
+bool waiting_for_move = false;
+int selected_row = -1, selected_col = -1;
+Move *possible_moves = NULL;
+int moves_size = 0;
+
+void reset_params(void)
+{
+    waiting_for_move = false;
+    selected_row = -1;
+    selected_col = -1;
+    reset_moves();
+}
+
+void reset_moves(void)
+{
+    if (possible_moves != NULL)
+    {
+        free(possible_moves);
+        possible_moves = NULL;
+    }
+    moves_size = 0;
+}
+
+
+void display_moves(SDL_Renderer *renderer, ChessPieces pieces)
+{
+    draw_background(renderer);
+    draw_board(renderer);
+    draw_pieces(renderer, pieces);
+    if (waiting_for_move) {
+        show_moves(renderer, possible_moves, moves_size);
+    }
+    SDL_RenderPresent(renderer);
+}
+
+bool handle_first_click(int row, int col)
+{
+    // check if right color turn
+    bool piece_color = get_color(row, col);
+    if (piece_color != turn)
+        return false;
+
+    reset_moves();
+
+    moves_size = get_moves(row, col, &possible_moves, false);
+    remove_illegal_moves(row, col, &possible_moves, moves_size);
+
+    // Debug messages
+    printf("\n=== Debug Mouvements ===\n");
+    printf("Pièce sélectionnée: (%d,%d) - Couleur: %s\n", row, col, piece_color == WHITE ? "Blanc" : "Noir");
+    printf("Tour actuel: %s\n", turn == WHITE ? "Blanc" : "Noir");
+    printf("Nombre de mouvements possibles: %d\n", moves_size);
+    printf("Mouvements possibles:\n");
+    for (int i = 0; i < moves_size; i++) {
+        printf("  - (%d,%d) - Type: %s\n", 
+            possible_moves[i].row, 
+            possible_moves[i].col,
+            possible_moves[i].type == MOVE_NORMAL ? "Normal" : 
+            possible_moves[i].type == MOVE_ATTACK ? "Attaque" : "Illégal");
+    }
+    printf("=====================\n\n");
+
+    if (moves_size == 0)
+    {
+        reset_moves();
+        return false;
+    }
+
+    // Save params
+    selected_row = row;
+    selected_col = col;
+    waiting_for_move = true;
+    return true;
+}
+
+bool handle_second_click(int row, int col)
+{
+    // Vérifier si le clic est sur un mouvement valide
+    for (int i = 0; i < moves_size; i++)
+    {
+        if (possible_moves[i].row == row && possible_moves[i].col == col && possible_moves[i].type != MOVE_ILLEGAL) {
+            // move piece
+            int piece = board[selected_row][selected_col];
+            board[selected_row][selected_col] = EMPTY;
+            board[row][col] = piece;
+
+            printf("here\n");
+            if (is_checkmate(!turn))
+                printf("Échec et mat !\n");
+
+            switch_turn();
+            return true;
+        }
+    }
+    return false;
+}
+
+void click(int row, int col, SDL_Renderer *renderer, ChessPieces pieces)
+{   
+    if (is_on_board(row,col))
+    {
+        if (!waiting_for_move) // first click
+        {   
+            if (handle_first_click(row, col))
+            {
+                display_moves(renderer, pieces);
+            }
+        }
+        else // second click
+        {
+            if (handle_second_click(row, col))
+            {
+                reset_params();
+                display_moves(renderer, pieces);
+            }
+            else
+            {
+                reset_params();
+                display_moves(renderer, pieces);
+            }
+        }
+    }
+}
+
 void game_loop(SDL_Renderer *renderer, ChessPieces pieces)
 {
     SDL_Event event;
@@ -14,11 +139,12 @@ void game_loop(SDL_Renderer *renderer, ChessPieces pieces)
         {
             switch (event.type)
             {
-                case SDL_QUIT:
+                case SDL_QUIT: // quit game
                     quit = 1;
                     break;
-                case SDL_MOUSEBUTTONDOWN:
-                    if (event.button.button == SDL_BUTTON_LEFT) {
+                case SDL_MOUSEBUTTONDOWN: // left click
+                    if (event.button.button == SDL_BUTTON_LEFT)
+                    {
                         SDL_GetMouseState(&mouseX, &mouseY);
                         int clickX = (mouseX - BOARD_X) / SQUARE_SIZE;
                         int clickY = (mouseY - BOARD_Y) / SQUARE_SIZE;
@@ -28,34 +154,6 @@ void game_loop(SDL_Renderer *renderer, ChessPieces pieces)
             }
         }
         SDL_Delay(16);
-    }
-}
-
-void click(int row, int col, SDL_Renderer *renderer, ChessPieces pieces)
-{   
-    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
-        // Check turn
-        bool piece_color = get_color(row, col);
-        if (piece_color != turn)
-            return;
-
-        Move *possible_moves;
-        int size = get_moves(row, col, &possible_moves, false);
-        remove_illegal_moves(row,col,&possible_moves,size);
-        
-        //Debug: print moves
-        printf("Mouvements possibles pour la pièce à (%d,%d):\n", row, col);
-        for (int i = 0; i < size; i++) {
-            printf("  Move %d: (%d,%d) type=%d\n", i, possible_moves[i].row, possible_moves[i].col, possible_moves[i].type);
-        }
-        
-        draw_background(renderer);
-        draw_board(renderer);
-        draw_pieces(renderer, pieces);
-        show_moves(renderer, possible_moves, size);
-        SDL_RenderPresent(renderer);
-
-        free(possible_moves);
     }
 }
 

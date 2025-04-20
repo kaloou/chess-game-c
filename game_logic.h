@@ -16,5 +16,7 @@ bool get_color(int row, int col);
 bool is_on_board(int row, int col);
 bool is_in_check(bool color);
 void remove_illegal_moves(int row, int col, Move **moves, int size);
+bool is_checkmate(bool color);
+bool can_block_check(bool color);
 
 #endif 

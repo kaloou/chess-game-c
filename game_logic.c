@@ -27,11 +27,10 @@ void initialize_board(void)
         for (int col = 0; col < BOARD_SIZE; col++)
             board[row][col] = EMPTY;
     }
-    /*
+    
     for (int col = 0; col < BOARD_SIZE; col++)
         board[6][col] = W_PAWN;
-    */
-    board[4][7] = B_BISHOP;
+
 
     board[7][0] = W_ROOK;
     board[7][1] = W_KNIGHT;
@@ -39,16 +38,13 @@ void initialize_board(void)
     board[7][3] = W_QUEEN;
     board[7][4] = W_KING;
     board[7][5] = W_BISHOP;
-    board[6][5] = W_KNIGHT;
-    //board[7][6] = W_KNIGHT;
+    board[7][6] = W_KNIGHT;
     board[7][7] = W_ROOK;
 }
 
-
-//---------------
-// GET FUNCTIONS
-//---------------
-
+//----------------
+// MOVE FUNCTIONS
+//----------------
 int get_moves(int row, int col, Move **moves, bool option)
 {
     *moves = malloc(27 * sizeof(Move));
@@ -451,23 +447,15 @@ int get_moves(int row, int col, Move **moves, bool option)
     return size;
 }
 
-bool get_color(int row, int col)
-{
-    int piece = board[row][col];
-    if (piece >= W_PAWN && piece <= W_KING)
-        return WHITE;
-    else if (piece >= B_PAWN && piece <= B_KING) 
-        return BLACK;
-    return WHITE;
-}
-
-//------------------
-// CHECKS FUNCTIONS
-//------------------
-
 bool is_valid_move(int row, int col, int old_row, int old_col)
 {
     if (!is_on_board(row, col)) return false;
+    
+    if (!DEBUG_MODE){
+        printf("\n=== Debug Validation Mouvement ===\n");
+        printf("Tentative de mouvement de (%d,%d) vers (%d,%d)\n", old_row, old_col, row, col);
+        printf("Tour actuel: %s\n", turn == WHITE ? "Blanc" : "Noir");
+    }
     
     // Save position
     int current_piece = board[old_row][old_col];
@@ -477,15 +465,65 @@ bool is_valid_move(int row, int col, int old_row, int old_col)
     board[old_row][old_col] = EMPTY;
     board[row][col] = current_piece;
     
-    bool in_check = is_in_check(get_color(row, col));
+    // Check if the move puts or leaves the king in check for the current player
+    bool in_check = is_in_check(turn);
+    
+    if (!DEBUG_MODE){
+        printf("Après simulation, le roi %s est %s\n", 
+            turn == WHITE ? "blanc" : "noir",
+            in_check ? "en échec" : "sécurisé");
+    }
     
     // Restore position
     board[old_row][old_col] = current_piece;
     board[row][col] = target_piece;
     
-    return !in_check;
+    // Un mouvement est valide s'il ne laisse pas le roi en échec
+    bool is_valid = !in_check;
+    if (!DEBUG_MODE){  
+        printf("Mouvement %s\n", is_valid ? "valide" : "invalide");
+        printf("=====================\n\n");
+    }
+    
+    return is_valid;
 }
 
+void remove_illegal_moves(int row, int col, Move **moves, int size)
+{
+    if (DEBUG_MODE) {
+        printf("\n=== Debug Filtrage Mouvements ===\n");
+        printf("Filtrage des mouvements pour la pièce en (%d,%d)\n", row, col);
+        printf("Nombre de mouvements avant filtrage: %d\n", size);
+    }
+
+    // check if is its check
+    // loop on the moves that can block check
+    for (int i = 0; i < size; i++)
+    {
+        if(!is_valid_move((*moves)[i].row, (*moves)[i].col, row, col)) {
+            if (DEBUG_MODE) {
+                printf("Mouvement vers (%d,%d) marqué comme illégal\n", 
+                    (*moves)[i].row, (*moves)[i].col);
+            }
+            (*moves)[i].type = MOVE_ILLEGAL;
+        }
+    }
+
+    if (DEBUG_MODE) {
+        printf("Mouvements après filtrage:\n");
+        for (int i = 0; i < size; i++) {
+            printf("  - (%d,%d) - Type: %s\n", 
+                (*moves)[i].row, 
+                (*moves)[i].col,
+                (*moves)[i].type == MOVE_NORMAL ? "Normal" : 
+                (*moves)[i].type == MOVE_ATTACK ? "Attaque" : "Illégal");
+        }
+        printf("=====================\n\n");
+    }
+}
+//------------------
+// CHECKS FUNCTIONS
+//------------------
 bool is_empty(int row, int col)
 {
     if (!is_on_board(row, col)) return false;
@@ -564,12 +602,154 @@ bool is_in_check(bool color)
     return false;
 }
 
-
-void remove_illegal_moves(int row, int col, Move **moves, int size)
+bool can_block_check(bool color)
 {
-    for (int i = 0; i < size; i++)
-    {
-        if(!is_valid_move(row,col, (*moves)[i].row, (*moves)[i].col))
-            (*moves)[i].type = MOVE_ILLEGAL;
+    // Check all pieces of the color
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (board[i][j] != EMPTY && get_color(i, j) == color)
+            {
+                Move *moves = NULL;
+                int size = get_moves(i, j, &moves, false);
+                
+                // Vérifier chaque mouvement possible
+                for (int k = 0; k < size; k++) {
+                    if (moves[k].type != MOVE_ILLEGAL) {
+                        // Simuler le mouvement
+                        int current_piece = board[i][j];
+                        int target_piece = board[moves[k].row][moves[k].col];
+                        
+                        board[i][j] = EMPTY;
+                        board[moves[k].row][moves[k].col] = current_piece;
+                        
+                        // Vérifier si le roi est toujours en échec
+                        bool still_in_check = is_in_check(color);
+                        
+                        // Restaurer la position
+                        board[i][j] = current_piece;
+                        board[moves[k].row][moves[k].col] = target_piece;
+                        
+                        if (!still_in_check) {
+                            free(moves);
+                            return true; // Une pièce peut bloquer l'échec
+                        }
+                    }
+                }
+                if (moves != NULL) {
+                    free(moves);
+                }
+            }
+        }
     }
+    return false;
+}
+
+bool is_checkmate(bool color)
+{
+    if (DEBUG_MODE) {
+        printf("\n=== Debug Échec et Mat ===\n");
+        printf("Vérification échec et mat pour les %s\n", color == WHITE ? "Blancs" : "Noirs");
+    }
+
+    // Vérifier d'abord si le roi est en échec
+    if (!is_in_check(color)) {
+        if (DEBUG_MODE) {
+            printf("Le roi n'est pas en échec\n");
+            printf("=====================\n\n");
+        }
+        return false;
+    }
+    if (DEBUG_MODE) {
+        printf("Le roi est en échec\n");
+    }
+    
+    // Trouver la position du roi
+    int king_piece = (color == WHITE) ? W_KING : B_KING;
+    int king_row = -1, king_col = -1;
+    
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (board[i][j] == king_piece) {
+                king_row = i;
+                king_col = j;
+                break;
+            }
+        }
+        if (king_row != -1) break;
+    }
+    
+    if (king_row == -1) {
+        if (DEBUG_MODE) {
+            printf("Roi non trouvé !\n");
+            printf("=====================\n\n");
+        }
+        return false;
+    }
+    if (DEBUG_MODE) {
+        printf("Position du roi: (%d,%d)\n", king_row, king_col);
+    }
+    
+    // Vérifier si le roi peut se déplacer vers une case sûre
+    Move *king_moves = NULL;
+    int size = get_moves(king_row, king_col, &king_moves, false);
+    if (DEBUG_MODE) {
+        printf("Nombre de mouvements possibles pour le roi: %d\n", size);
+    }
+    
+    for (int i = 0; i < size; i++) {
+        if (king_moves[i].type != MOVE_ILLEGAL) {
+            if (DEBUG_MODE) {
+                printf("Test du mouvement du roi vers (%d,%d)\n", 
+                    king_moves[i].row, king_moves[i].col);
+            }
+            // Simuler le mouvement du roi
+            int current_piece = board[king_row][king_col];
+            int target_piece = board[king_moves[i].row][king_moves[i].col];
+            
+            board[king_row][king_col] = EMPTY;
+            board[king_moves[i].row][king_moves[i].col] = current_piece;
+            
+            // Vérifier si le roi est toujours en échec
+            bool still_in_check = is_in_check(color);
+            
+            // Restaurer la position
+            board[king_row][king_col] = current_piece;
+            board[king_moves[i].row][king_moves[i].col] = target_piece;
+            
+            if (!still_in_check) {
+                if (DEBUG_MODE) {
+                    printf("Le roi peut s'échapper vers (%d,%d)\n", 
+                        king_moves[i].row, king_moves[i].col);
+                    printf("=====================\n\n");
+                }
+                free(king_moves);
+                return false;
+            }
+        }
+    }
+    if (king_moves != NULL) {
+        free(king_moves);
+    }
+    
+    // Si le roi ne peut pas se déplacer, vérifier si une pièce peut bloquer l'échec
+    bool can_block = can_block_check(color);
+    if (DEBUG_MODE) {
+        printf("Une pièce peut bloquer l'échec: %s\n", can_block ? "Oui" : "Non");
+        printf("=====================\n\n");
+    }
+    
+    return !can_block;
+}
+
+//-----------------
+// UTILS FUNCTIONS
+//-----------------
+bool get_color(int row, int col)
+{
+    int piece = board[row][col];
+    if (piece >= W_PAWN && piece <= W_KING)
+        return WHITE;
+    else if (piece >= B_PAWN && piece <= B_KING) 
+        return BLACK;
+    return WHITE;
 }

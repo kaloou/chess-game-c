@@ -1,21 +1,23 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-// Game Logic
+enum ChessPiece {
+    EMPTY = 0,
+    W_PAWN = 1,
+    W_KNIGHT = 2,
+    W_BISHOP = 3,
+    W_ROOK = 4,
+    W_QUEEN = 5,
+    W_KING = 6,
+    B_PAWN = 7,
+    B_KNIGHT = 8,
+    B_BISHOP = 9,
+    B_ROOK = 10,
+    B_QUEEN = 11,
+    B_KING = 12
+};
+
 #define BOARD_SIZE 8
-#define EMPTY 0
-#define W_PAWN 1
-#define W_KNIGHT 2
-#define W_BISHOP 3
-#define W_ROOK 4
-#define W_QUEEN 5
-#define W_KING 6
-#define B_PAWN 7
-#define B_KNIGHT 8
-#define B_BISHOP 9
-#define B_ROOK 10
-#define B_QUEEN 11
-#define B_KING 12
 
 #define WHITE true
 #define BLACK false
@@ -43,4 +45,5 @@ typedef struct {
     int type;
 } Move;
 
+#define DEBUG_MODE true
 #endif 
