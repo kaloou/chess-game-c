@@ -26,6 +26,7 @@ enum ChessPiece {
 #define MOVE_NORMAL 0
 #define MOVE_ATTACK 1
 #define MOVE_ILLEGAL 2
+#define MOVE_CASTLE 3
 
 // Window and Board
 #define WINDOW_WIDTH 800
@@ -45,5 +46,5 @@ typedef struct {
     int type;
 } Move;
 
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 #endif 

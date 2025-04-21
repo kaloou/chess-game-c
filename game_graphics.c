@@ -164,7 +164,7 @@ void show_moves(SDL_Renderer *renderer, Move *moves, int size)
         else if (moves[i].type == MOVE_ATTACK)
         {
             SDL_SetRenderDrawColor(renderer, 128, 128, 128, 120);
-            int outerRadius = SQUARE_SIZE / 2 ;
+            int outerRadius = SQUARE_SIZE / 2;
             int innerRadius = outerRadius - 8;
             
             for (int dy = -outerRadius; dy <= outerRadius; dy++) {
@@ -177,8 +177,17 @@ void show_moves(SDL_Renderer *renderer, Move *moves, int size)
                 }
             }
         }
-        else;
-
+        else if (moves[i].type == MOVE_CASTLE)
+        {
+            SDL_SetRenderDrawColor(renderer, 128, 128, 128, 100);
+            for (int dy = -radius/2; dy <= radius/2; dy++) {
+                for (int dx = -radius/2; dx <= radius/2; dx++) {
+                    if (dx*dx + dy*dy <= (radius/2)*(radius/2)) {
+                        SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+                    }
+                }
+            }
+        }
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);

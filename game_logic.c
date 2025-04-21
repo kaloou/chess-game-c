@@ -2,6 +2,12 @@
 #include "utils.h"
 
 bool turn = WHITE;
+bool white_king_moved = false;
+bool black_king_moved = false;
+bool white_rook_left_moved = false;
+bool white_rook_right_moved = false;
+bool black_rook_left_moved = false;
+bool black_rook_right_moved = false;
 
 //----------------
 // BOARD FUNCTIONS
@@ -40,6 +46,14 @@ void initialize_board(void)
     board[7][5] = W_BISHOP;
     board[7][6] = W_KNIGHT;
     board[7][7] = W_ROOK;
+
+    // Réinitialiser les variables de roque
+    white_king_moved = false;
+    black_king_moved = false;
+    white_rook_left_moved = false;
+    white_rook_right_moved = false;
+    black_rook_left_moved = false;
+    black_rook_right_moved = false;
 }
 
 //----------------
@@ -133,7 +147,7 @@ int get_moves(int row, int col, Move **moves, bool option)
                         (*moves)[size].row = new_row;
                         (*moves)[size].col = new_col;
                         (*moves)[size].type = MOVE_ATTACK;
-                        size++;
+                    size++;
                     }
                 }
             }
@@ -434,6 +448,39 @@ int get_moves(int row, int col, Move **moves, bool option)
                     }
                 }
             }
+
+            // Ajouter le roque si possible
+            if (piece == W_KING && !white_king_moved) {
+                // Petit roque
+                if (can_castle(WHITE, true)) {
+                    (*moves)[size].row = 7;
+                    (*moves)[size].col = 6;
+                    (*moves)[size].type = MOVE_CASTLE;
+                    size++;
+                }
+                // Grand roque
+                if (can_castle(WHITE, false)) {
+                    (*moves)[size].row = 7;
+                    (*moves)[size].col = 2;
+                    (*moves)[size].type = MOVE_CASTLE;
+                    size++;
+                }
+            } else if (piece == B_KING && !black_king_moved) {
+                // Petit roque
+                if (can_castle(BLACK, true)) {
+                    (*moves)[size].row = 0;
+                    (*moves)[size].col = 6;
+                    (*moves)[size].type = MOVE_CASTLE;
+                    size++;
+                }
+                // Grand roque
+                if (can_castle(BLACK, false)) {
+                    (*moves)[size].row = 0;
+                    (*moves)[size].col = 2;
+                    (*moves)[size].type = MOVE_CASTLE;
+                    size++;
+                }
+            }
             break;
         }
     }
@@ -451,12 +498,6 @@ bool is_valid_move(int row, int col, int old_row, int old_col)
 {
     if (!is_on_board(row, col)) return false;
     
-    if (!DEBUG_MODE){
-        printf("\n=== Debug Validation Mouvement ===\n");
-        printf("Tentative de mouvement de (%d,%d) vers (%d,%d)\n", old_row, old_col, row, col);
-        printf("Tour actuel: %s\n", turn == WHITE ? "Blanc" : "Noir");
-    }
-    
     // Save position
     int current_piece = board[old_row][old_col];
     int target_piece = board[row][col];
@@ -468,59 +509,24 @@ bool is_valid_move(int row, int col, int old_row, int old_col)
     // Check if the move puts or leaves the king in check for the current player
     bool in_check = is_in_check(turn);
     
-    if (!DEBUG_MODE){
-        printf("Après simulation, le roi %s est %s\n", 
-            turn == WHITE ? "blanc" : "noir",
-            in_check ? "en échec" : "sécurisé");
-    }
-    
     // Restore position
     board[old_row][old_col] = current_piece;
     board[row][col] = target_piece;
     
-    // Un mouvement est valide s'il ne laisse pas le roi en échec
-    bool is_valid = !in_check;
-    if (!DEBUG_MODE){  
-        printf("Mouvement %s\n", is_valid ? "valide" : "invalide");
-        printf("=====================\n\n");
-    }
-    
-    return is_valid;
+    return !in_check;
 }
 
 void remove_illegal_moves(int row, int col, Move **moves, int size)
 {
-    if (DEBUG_MODE) {
-        printf("\n=== Debug Filtrage Mouvements ===\n");
-        printf("Filtrage des mouvements pour la pièce en (%d,%d)\n", row, col);
-        printf("Nombre de mouvements avant filtrage: %d\n", size);
-    }
-
     // check if is its check
     // loop on the moves that can block check
     for (int i = 0; i < size; i++)
     {
-        if(!is_valid_move((*moves)[i].row, (*moves)[i].col, row, col)) {
-            if (DEBUG_MODE) {
-                printf("Mouvement vers (%d,%d) marqué comme illégal\n", 
-                    (*moves)[i].row, (*moves)[i].col);
-            }
+        if(!is_valid_move((*moves)[i].row, (*moves)[i].col, row, col))
             (*moves)[i].type = MOVE_ILLEGAL;
-        }
-    }
-
-    if (DEBUG_MODE) {
-        printf("Mouvements après filtrage:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  - (%d,%d) - Type: %s\n", 
-                (*moves)[i].row, 
-                (*moves)[i].col,
-                (*moves)[i].type == MOVE_NORMAL ? "Normal" : 
-                (*moves)[i].type == MOVE_ATTACK ? "Attaque" : "Illégal");
-        }
-        printf("=====================\n\n");
     }
 }
+
 //------------------
 // CHECKS FUNCTIONS
 //------------------
@@ -588,7 +594,6 @@ bool is_in_check(bool color)
                 for (int k = 0; k < size; k++) {
                     if (moves[k].row == king_row && moves[k].col == king_col) {
                         free(moves);
-                        fprintf(stdout,"in check");
                         return true;
                     }
                 }
@@ -646,101 +651,9 @@ bool can_block_check(bool color)
 
 bool is_checkmate(bool color)
 {
-    if (DEBUG_MODE) {
-        printf("\n=== Debug Échec et Mat ===\n");
-        printf("Vérification échec et mat pour les %s\n", color == WHITE ? "Blancs" : "Noirs");
-    }
-
-    // Vérifier d'abord si le roi est en échec
-    if (!is_in_check(color)) {
-        if (DEBUG_MODE) {
-            printf("Le roi n'est pas en échec\n");
-            printf("=====================\n\n");
-        }
-        return false;
-    }
-    if (DEBUG_MODE) {
-        printf("Le roi est en échec\n");
-    }
-    
-    // Trouver la position du roi
-    int king_piece = (color == WHITE) ? W_KING : B_KING;
-    int king_row = -1, king_col = -1;
-    
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            if (board[i][j] == king_piece) {
-                king_row = i;
-                king_col = j;
-                break;
-            }
-        }
-        if (king_row != -1) break;
-    }
-    
-    if (king_row == -1) {
-        if (DEBUG_MODE) {
-            printf("Roi non trouvé !\n");
-            printf("=====================\n\n");
-        }
-        return false;
-    }
-    if (DEBUG_MODE) {
-        printf("Position du roi: (%d,%d)\n", king_row, king_col);
-    }
-    
-    // Vérifier si le roi peut se déplacer vers une case sûre
-    Move *king_moves = NULL;
-    int size = get_moves(king_row, king_col, &king_moves, false);
-    if (DEBUG_MODE) {
-        printf("Nombre de mouvements possibles pour le roi: %d\n", size);
-    }
-    
-    for (int i = 0; i < size; i++) {
-        if (king_moves[i].type != MOVE_ILLEGAL) {
-            if (DEBUG_MODE) {
-                printf("Test du mouvement du roi vers (%d,%d)\n", 
-                    king_moves[i].row, king_moves[i].col);
-            }
-            // Simuler le mouvement du roi
-            int current_piece = board[king_row][king_col];
-            int target_piece = board[king_moves[i].row][king_moves[i].col];
-            
-            board[king_row][king_col] = EMPTY;
-            board[king_moves[i].row][king_moves[i].col] = current_piece;
-            
-            // Vérifier si le roi est toujours en échec
-            bool still_in_check = is_in_check(color);
-            
-            // Restaurer la position
-            board[king_row][king_col] = current_piece;
-            board[king_moves[i].row][king_moves[i].col] = target_piece;
-            
-            if (!still_in_check) {
-                if (DEBUG_MODE) {
-                    printf("Le roi peut s'échapper vers (%d,%d)\n", 
-                        king_moves[i].row, king_moves[i].col);
-                    printf("=====================\n\n");
-                }
-                free(king_moves);
-                return false;
-            }
-        }
-    }
-    if (king_moves != NULL) {
-        free(king_moves);
-    }
-    
-    // Si le roi ne peut pas se déplacer, vérifier si une pièce peut bloquer l'échec
-    bool can_block = can_block_check(color);
-    if (DEBUG_MODE) {
-        printf("Une pièce peut bloquer l'échec: %s\n", can_block ? "Oui" : "Non");
-        printf("=====================\n\n");
-    }
-    
-    return !can_block;
+    //Fck u
+    return false;
 }
-
 //-----------------
 // UTILS FUNCTIONS
 //-----------------
@@ -753,3 +666,128 @@ bool get_color(int row, int col)
         return BLACK;
     return WHITE;
 }
+
+bool can_castle(bool color, bool kingside)
+{
+    if (color == WHITE) {
+        if (white_king_moved) return false;
+        if (kingside) {
+            if (white_rook_right_moved) return false;
+            // Vérifier que les cases entre le roi et la tour sont vides
+            for (int col = 5; col < 7; col++) {
+                if (!is_empty(7, col)) return false;
+            }
+            // Vérifier que le roi n'est pas en échec et ne passe pas par une case en échec
+            if (is_in_check(WHITE)) return false;
+            // Vérifier la case que le roi traverse
+            board[7][4] = EMPTY;
+            board[7][5] = W_KING;
+            bool check = is_in_check(WHITE);
+            board[7][4] = W_KING;
+            board[7][5] = EMPTY;
+            if (check) return false;
+        } else {
+            if (white_rook_left_moved) return false;
+            // Vérifier que les cases entre le roi et la tour sont vides
+            for (int col = 1; col < 4; col++) {
+                if (!is_empty(7, col)) return false;
+            }
+            // Vérifier que le roi n'est pas en échec et ne passe pas par une case en échec
+            if (is_in_check(WHITE)) return false;
+            // Vérifier la case que le roi traverse
+            board[7][4] = EMPTY;
+            board[7][3] = W_KING;
+            bool check = is_in_check(WHITE);
+            board[7][4] = W_KING;
+            board[7][3] = EMPTY;
+            if (check) return false;
+        }
+    } else {
+        if (black_king_moved) return false;
+        if (kingside) {
+            if (black_rook_right_moved) return false;
+            // Vérifier que les cases entre le roi et la tour sont vides
+            for (int col = 5; col < 7; col++) {
+                if (!is_empty(0, col)) return false;
+            }
+            // Vérifier que le roi n'est pas en échec et ne passe pas par une case en échec
+            if (is_in_check(BLACK)) return false;
+            // Vérifier la case que le roi traverse
+            board[0][4] = EMPTY;
+            board[0][5] = B_KING;
+            bool check = is_in_check(BLACK);
+            board[0][4] = B_KING;
+            board[0][5] = EMPTY;
+            if (check) return false;
+        } else {
+            if (black_rook_left_moved) return false;
+            // Vérifier que les cases entre le roi et la tour sont vides
+            for (int col = 1; col < 4; col++) {
+                if (!is_empty(0, col)) return false;
+            }
+            // Vérifier que le roi n'est pas en échec et ne passe pas par une case en échec
+            if (is_in_check(BLACK)) return false;
+            // Vérifier la case que le roi traverse
+            board[0][4] = EMPTY;
+            board[0][3] = B_KING;
+            bool check = is_in_check(BLACK);
+            board[0][4] = B_KING;
+            board[0][3] = EMPTY;
+            if (check) return false;
+        }
+    }
+    return true;
+}
+
+void move_piece(int old_row, int old_col, int new_row, int new_col)
+{
+    int piece = board[old_row][old_col];
+    
+    // Mettre à jour les variables de roque si nécessaire
+    if (piece == W_KING) {
+        white_king_moved = true;
+    } else if (piece == B_KING) {
+        black_king_moved = true;
+    } else if (piece == W_ROOK) {
+        if (old_row == 7 && old_col == 0) white_rook_left_moved = true;
+        if (old_row == 7 && old_col == 7) white_rook_right_moved = true;
+    } else if (piece == B_ROOK) {
+        if (old_row == 0 && old_col == 0) black_rook_left_moved = true;
+        if (old_row == 0 && old_col == 7) black_rook_right_moved = true;
+    }
+    
+    // Gérer le roque
+    if ((piece == W_KING || piece == B_KING) && abs(new_col - old_col) == 2) {
+        // C'est un roque
+        if (new_col > old_col) {
+            // Petit roque
+            if (piece == W_KING) {
+                // Déplacer la tour de droite
+                board[7][7] = EMPTY;
+                board[7][5] = W_ROOK;
+            } else {
+                // Déplacer la tour de droite
+                board[0][7] = EMPTY;
+                board[0][5] = B_ROOK;
+            }
+        } else {
+            // Grand roque
+            if (piece == W_KING) {
+                // Déplacer la tour de gauche
+                board[7][0] = EMPTY;
+                board[7][3] = W_ROOK;
+            } else {
+                // Déplacer la tour de gauche
+                board[0][0] = EMPTY;
+                board[0][3] = B_ROOK;
+            }
+        }
+    }
+    
+    // Déplacer la pièce
+    board[old_row][old_col] = EMPTY;
+    board[new_row][new_col] = piece;
+    
+    // Changer de tour
+    turn = !turn;
+} 

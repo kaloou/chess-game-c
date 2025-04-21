@@ -3,8 +3,8 @@
 #include "game_logic.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
-// Variables globales pour gérer l'état du jeu
 bool waiting_for_move = false;
 int selected_row = -1, selected_col = -1;
 Move *possible_moves = NULL;
@@ -53,19 +53,23 @@ bool handle_first_click(int row, int col)
     remove_illegal_moves(row, col, &possible_moves, moves_size);
 
     // Debug messages
-    printf("\n=== Debug Mouvements ===\n");
-    printf("Pièce sélectionnée: (%d,%d) - Couleur: %s\n", row, col, piece_color == WHITE ? "Blanc" : "Noir");
-    printf("Tour actuel: %s\n", turn == WHITE ? "Blanc" : "Noir");
-    printf("Nombre de mouvements possibles: %d\n", moves_size);
-    printf("Mouvements possibles:\n");
-    for (int i = 0; i < moves_size; i++) {
-        printf("  - (%d,%d) - Type: %s\n", 
+    if (DEBUG_MODE)
+    {
+        printf("\n=== Debug Mouvements ===\n");
+        printf("Pièce sélectionnée: (%d,%d) - Couleur: %s\n", row, col, piece_color == WHITE ? "Blanc" : "Noir");
+        printf("Tour actuel: %s\n", turn == WHITE ? "Blanc" : "Noir");
+        printf("Nombre de mouvements possibles: %d\n", moves_size);
+        printf("Mouvements possibles:\n");
+        for (int i = 0; i < moves_size; i++)
+        {
+            printf("  - (%d,%d) - Type: %s\n", 
             possible_moves[i].row, 
             possible_moves[i].col,
             possible_moves[i].type == MOVE_NORMAL ? "Normal" : 
-            possible_moves[i].type == MOVE_ATTACK ? "Attaque" : "Illégal");
+                possible_moves[i].type == MOVE_ATTACK ? "Attaque" : "Illégal");
+        }
+        printf("=====================\n\n");
     }
-    printf("=====================\n\n");
 
     if (moves_size == 0)
     {
@@ -91,9 +95,13 @@ bool handle_second_click(int row, int col)
             board[selected_row][selected_col] = EMPTY;
             board[row][col] = piece;
 
-            printf("here\n");
             if (is_checkmate(!turn))
+            {
                 printf("Échec et mat !\n");
+                initialize_board();
+                if (turn != WHITE) turn = WHITE;
+                return true;
+            }
 
             switch_turn();
             return true;
